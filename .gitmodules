@@ -1,0 +1,3 @@
+[submodule "tilt"]
+	path = tilt
+	url = git@github.com:ampersand-projects/tilt.git
