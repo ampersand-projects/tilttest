@@ -3,10 +3,10 @@
 #include <cstdlib>
 #include <chrono>
 
-#include "tilt/pass/printer.h"
-#include "tilt/pass/codegen/loopgen.h"
-#include "tilt/pass/codegen/llvmgen.h"
-#include "tilt/pass/codegen/vinstr.h"
+#include "tilt/codegen/printer.h"
+#include "tilt/codegen/loopgen.h"
+#include "tilt/codegen/llvmgen.h"
+#include "tilt/codegen/vinstr.h"
 #include "tilt/engine/engine.h"
 #include "tilt/builder/tilder.h"
 
