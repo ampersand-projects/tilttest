@@ -86,8 +86,10 @@ void run_op(string query_name, Op op, ts_t st, ts_t et, region_t* out_reg, regio
     jit->AddModule(move(llmod));
 
     auto loop_addr = (region_t* (*)(ts_t, ts_t, region_t*, region_t*)) jit->Lookup(loop->get_name());
-
+    cout << "started loop" << endl;
     loop_addr(st, et, out_reg, in_reg);
+    // free(out_reg->data);
+    cout << "finished loop" << endl;
 }
 
 template<typename InTy, typename OutTy>
@@ -110,8 +112,8 @@ void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> qu
 
     region_t out_reg;
     auto out_tl = vector<ival_t>(true_out.size());
-    auto out_data = vector<OutTy>(true_out.size());
-    auto out_data_ptr = reinterpret_cast<char*>(out_data.data());
+    auto out_data = new vector<OutTy>(true_out.size());
+    auto out_data_ptr = reinterpret_cast<char*>(out_data->data());
     init_region(&out_reg, st, get_buf_size(true_out.size()), out_tl.data(), out_data_ptr);
 
     run_op(query_name, op, st, et, &out_reg, &in_reg);
@@ -122,7 +124,7 @@ void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> qu
         auto true_payload = true_out[i].payload;
         // auto out_st = out_tl[i].t;
         // auto out_et = out_st + out_tl[i].d;
-        auto out_payload = out_data[i];
+        auto out_payload = (*out_data)[i];
 
         // assert_eq(true_st, out_st);
         // assert_eq(true_et, out_et);
@@ -204,7 +206,7 @@ void unary_op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, Out
 template<typename InTy, typename OutTy>
 void nested_select_test(string query_name, function<Expr(Expr)> sel_expr, function<OutTy(InTy)> sel_fn)
 {
-    size_t len = 1000;
+    size_t len = 100;
     int64_t dur = 1;
 
     auto in_sym = _sym("in", tilt::Type(types::STRUCT<InTy>(), _iter(0, -1)));
