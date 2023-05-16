@@ -30,6 +30,21 @@ Op _Select(_sym in, function<Expr(_sym)> selector)
     return sel_op;
 }
 
+Op _NestedSelect(_sym in, int w)
+{
+    auto win = in[_win(-w, 0)];
+    auto win_sym = _sym("win", win);
+    auto inner_sel = _Select(win_sym, [](_sym e) { return e + _f32(10); });
+    auto inner_sel_sym = _sym("inner_sel", inner_sel);
+    auto sel_op = _op(
+        _iter(0, w),
+        Params{in},
+        SymTable{{win_sym, win}, {inner_sel_sym, inner_sel}},
+        _true(),
+        inner_sel_sym);
+    return sel_op;
+}
+
 int main(int argc, char* argv[])
 {
     int dlen = (argc > 1) ? atoi(argv[1]) : 30;
@@ -38,7 +53,7 @@ int main(int argc, char* argv[])
     // input stream
     auto in_sym = _sym("in", tilt::Type(types::FLOAT32, _iter(0, -1)));
 
-    auto query_op = _Select(in_sym, [](_sym e) { return e + _f32(10); });
+    auto query_op = _NestedSelect(in_sym, 10);
     auto query_op_sym = _sym("query", query_op);
     cout << endl << "TiLT IR:" << endl;
     cout << IRPrinter::Build(query_op) << endl;
