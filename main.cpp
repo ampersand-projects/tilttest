@@ -92,81 +92,46 @@ void run_op(string query_name, Op op, ts_t st, ts_t et, region_t* out_reg, regio
     cout << "finished loop" << endl;
 }
 
-template<typename InTy, typename OutTy>
-void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> query_fn, vector<Event<InTy>> input)
-{
-    auto in_st = input[0].st;
-    auto true_out = query_fn(input);
-
-    region_t in_reg;
-    auto in_tl = vector<ival_t>(input.size());
-    auto in_data = vector<InTy>(input.size());
-    auto in_data_ptr = reinterpret_cast<char*>(in_data.data());
-    init_region(&in_reg, in_st, get_buf_size(input.size()), in_tl.data(), in_data_ptr);
-    for (size_t i = 0; i < input.size(); i++) {
-        auto t = input[i].et;
-        commit_data(&in_reg, t);
-        auto* ptr = reinterpret_cast<InTy*>(fetch(&in_reg, t, get_end_idx(&in_reg), sizeof(InTy)));
-        *ptr = input[i].payload;
-    }
-
-    region_t out_reg;
-    auto out_tl = vector<ival_t>(true_out.size());
-    auto out_data = new vector<OutTy>(true_out.size());
-    auto out_data_ptr = reinterpret_cast<char*>(out_data->data());
-    init_region(&out_reg, st, get_buf_size(true_out.size()), out_tl.data(), out_data_ptr);
-
-    run_op(query_name, op, st, et, &out_reg, &in_reg);
-
-    for (size_t i = 0; i < true_out.size(); i++) {
-        // auto true_st = true_out[i].st;
-        // auto true_et = true_out[i].et;
-        auto true_payload = true_out[i].payload;
-        // auto out_st = out_tl[i].t;
-        // auto out_et = out_st + out_tl[i].d;
-        auto out_payload = (*out_data)[i];
-
-        // assert_eq(true_st, out_st);
-        // assert_eq(true_et, out_et);
-        cout << true_payload << " " << out_payload << endl;
-    }
-}
-
-
 // template<typename InTy, typename OutTy>
 // void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> query_fn, vector<Event<InTy>> input)
 // {
 //     auto in_st = input[0].st;
 //     auto true_out = query_fn(input);
 
-//     cout << "INPUT SIZE: " << input.size() << endl;
-//     cout << "OUTPUT SIZE: " << true_out.size() << endl;
-
 //     region_t in_reg;
+//     auto in_tl = vector<ival_t>(input.size());
 //     auto in_data = vector<InTy>(input.size());
 //     auto in_data_ptr = reinterpret_cast<char*>(in_data.data());
-//     init_region(&in_reg, in_st, get_buf_size(input.size()), nullptr, in_data_ptr);
+//     init_region(&in_reg, in_st, get_buf_size(input.size()), in_tl.data(), in_data_ptr);
 //     for (size_t i = 0; i < input.size(); i++) {
-//         auto* ptr = reinterpret_cast<InTy*>(in_reg.data + i * sizeof(InTy));
+//         auto t = input[i].et;
+//         commit_data(&in_reg, t);
+//         auto* ptr = reinterpret_cast<InTy*>(fetch(&in_reg, t, get_end_idx(&in_reg), sizeof(InTy)));
 //         *ptr = input[i].payload;
 //     }
 
 //     region_t out_reg;
-//     auto out_data = vector<OutTy>(true_out.size());
-//     auto out_data_ptr = reinterpret_cast<char*>(out_data.data());
-//     init_region(&out_reg, st, get_buf_size(true_out.size()), nullptr, out_data_ptr);
+//     auto out_tl = vector<ival_t>(true_out.size());
+//     auto out_data = new vector<OutTy>(true_out.size());
+//     auto out_data_ptr = reinterpret_cast<char*>(out_data->data());
+//     init_region(&out_reg, st, get_buf_size(true_out.size()), out_tl.data(), out_data_ptr);
 
 //     run_op(query_name, op, st, et, &out_reg, &in_reg);
 
 //     for (size_t i = 0; i < true_out.size(); i++) {
+//         // auto true_st = true_out[i].st;
+//         // auto true_et = true_out[i].et;
 //         auto true_payload = true_out[i].payload;
-//         auto out_payload = out_data[i];
+//         // auto out_st = out_tl[i].t;
+//         // auto out_et = out_st + out_tl[i].d;
+//         auto out_payload = (*out_data)[i];
 
-//         cout << "EXPECTED: " << true_payload << " | ACTUAL: " << out_payload << endl;
+//         // assert_eq(true_st, out_st);
+//         // assert_eq(true_et, out_et);
+//         cout << true_payload << " " << out_payload << endl;
 //     }
-
-//     cout << "Completed op_test" << endl;
 // }
+
 
 // template<typename InTy, typename OutTy>
 // void unary_op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> query_fn, size_t len, int64_t dur)
@@ -181,10 +146,44 @@ void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> qu
 //         input[i] = {st, et, payload};
 //     }
 
-//     cout << "Starting unary_op_test" << endl;
 //     op_test<InTy, OutTy>(query_name, op, st, et, query_fn, input);
-//     cout << "Completed unary_op_test" << endl;
 // }
+
+
+template<typename InTy, typename OutTy>
+void op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> query_fn, vector<Event<InTy>> input)
+{
+    auto in_st = input[0].st;
+    auto true_out = query_fn(input);
+
+    cout << "INPUT SIZE: " << input.size() << endl;
+    cout << "OUTPUT SIZE: " << true_out.size() << endl;
+
+    region_t in_reg;
+    auto in_data = vector<InTy>(input.size());
+    auto in_data_ptr = reinterpret_cast<char*>(in_data.data());
+    init_region(&in_reg, in_st, get_buf_size(input.size()), nullptr, in_data_ptr);
+    for (size_t i = 0; i < input.size(); i++) {
+        auto* ptr = reinterpret_cast<InTy*>(in_reg.data + i * sizeof(InTy));
+        *ptr = input[i].payload;
+    }
+
+    region_t out_reg;
+    auto out_data = vector<OutTy>(true_out.size());
+    auto out_data_ptr = reinterpret_cast<char*>(out_data.data());
+    init_region(&out_reg, st, get_buf_size(true_out.size()), nullptr, out_data_ptr);
+
+    run_op(query_name, op, st, et, &out_reg, &in_reg);
+
+    for (size_t i = 0; i < true_out.size(); i++) {
+        auto true_payload = true_out[i].payload;
+        auto out_payload = out_data[i];
+
+        cout << "EXPECTED: " << true_payload << " | ACTUAL: " << out_payload << endl;
+    }
+
+    cout << "Completed op_test" << endl;
+}
 
 template<typename InTy, typename OutTy>
 void unary_op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, OutTy> query_fn, size_t len, int64_t dur)
@@ -199,7 +198,9 @@ void unary_op_test(string query_name, Op op, ts_t st, ts_t et, QueryFn<InTy, Out
         input[i] = {st, et, payload};
     }
 
+    cout << "Starting unary_op_test" << endl;
     op_test<InTy, OutTy>(query_name, op, st, et, query_fn, input);
+    cout << "Completed unary_op_test" << endl;
 }
 
 
