@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
     auto in_sym = _sym("in", tilt::Type(types::FLOAT32, _iter(0, -1)));
 
     auto query_op = _NestedSelect(in_sym, 10);
+    //auto query_op = _Select(in_sym, [](_sym e) { return e + _f32(10); });
     auto query_op_sym = _sym("query", query_op);
     cout << endl << "TiLT IR:" << endl;
     cout << IRPrinter::Build(query_op) << endl;
@@ -75,21 +76,19 @@ int main(int argc, char* argv[])
     uint32_t dur = 1;
     auto buf_size = get_buf_size(dlen);
 
-    auto in_tl = new ival_t[dlen];
     auto in_data = new float[dlen];
     region_t in_reg;
-    init_region(&in_reg, 0, buf_size, in_tl, reinterpret_cast<char*>(in_data));
+    init_region(&in_reg, 0, buf_size, reinterpret_cast<char*>(in_data));
     for (int i = 0; i < dlen; i++) {
         auto t = dur * (i + 1);
         commit_data(&in_reg, t);
-        auto* ptr = reinterpret_cast<float*>(fetch(&in_reg, t, get_end_idx(&in_reg), sizeof(float)));
+        auto* ptr = reinterpret_cast<float*>(fetch(&in_reg, t, sizeof(float)));
         *ptr = i%1000;
     }
 
-    auto out_tl = new ival_t[dlen];
     auto out_data = new float[dlen];
     region_t out_reg;
-    init_region(&out_reg, 0, buf_size, out_tl, reinterpret_cast<char*>(out_data));
+    init_region(&out_reg, 0, buf_size, reinterpret_cast<char*>(out_data));
 
     auto start_time = high_resolution_clock::now();
     auto* res_reg = loop_addr(0, dur*dlen, &out_reg, &in_reg);
@@ -98,8 +97,7 @@ int main(int argc, char* argv[])
     int out_count = dlen;
     if (argc == 1) {
         for (int i = 0; i < dlen; i++) {
-            cout << "(" << in_tl[i].t << "," << in_tl[i].d << ") " << in_data[i] << " -> "
-                << "(" << out_tl[i].t << "," << out_tl[i].d << ") " << out_data[i] << endl;
+            cout << in_data[i] << " -> " << out_data[i] << endl;
         }
     }
 
