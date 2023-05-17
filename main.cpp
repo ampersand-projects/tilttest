@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
     region_t in_reg;
     init_region(&in_reg, 0, buf_size, reinterpret_cast<char*>(in_data));
     for (int i = 0; i < dlen; i++) {
-        auto t = dur * (i + 1);
+        auto t = dur * i;
         commit_data(&in_reg, t);
         auto* ptr = reinterpret_cast<float*>(fetch(&in_reg, t, sizeof(float)));
         *ptr = i%1000;
