@@ -101,6 +101,9 @@ int main(int argc, char* argv[])
         }
     }
 
+    delete [] in_data;
+    delete [] out_data;
+
     auto time = duration_cast<microseconds>(end_time - start_time).count();
     cout << "Data size: " << out_count << " Time: " << time << endl;
 
