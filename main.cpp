@@ -168,9 +168,24 @@ Op _Norm(_sym in, int64_t len)
     return query_op;
 }
 
+Op _Where(_sym in, function<Expr(_sym)> filter)
+{
+    auto e = in[_pt(0)];
+    auto e_sym = _sym("e", e);
+    auto pred = filter(e_sym);
+    auto cond = _exists(e_sym) && pred;
+    auto where_op = _op(
+        _iter(0, 1),
+        Params{in},
+        SymTable{{e_sym, e}},
+        cond,
+        e_sym);
+    return where_op;
+}
+
 int main(int argc, char* argv[])
 {
-    int dlen = (argc > 1) ? atoi(argv[1]) : 30;
+    int dlen = (argc > 1) ? atoi(argv[1]) : 32;
     int len = (argc > 2) ? atoi(argv[2]) : 10;
     dur_t dur = (argc > 3) ? atoi(argv[3]) : 1;
 
@@ -179,8 +194,9 @@ int main(int argc, char* argv[])
 
     // auto query_op = _Norm(in_sym, window_length);
     // auto query_op = _WindowSum(in_sym, 10);
-    //auto query_op = _NestedSelect(in_sym, 10);
-    auto query_op = _Select(in_sym, [](_sym e) { return e + _f32(10); });
+    // auto query_op = _NestedSelect(in_sym, 10);
+    // auto query_op = _Select(in_sym, [](_sym e) { return e + _f32(10); });
+    auto query_op = _Where(in_sym, [](_sym in) { return _and(_gt(in, _f32(13)), _lt(in, _f32(20))); });
     auto query_op_sym = _sym("query", query_op);
     cout << endl << "TiLT IR:" << endl;
     cout << IRPrinter::Build(query_op) << endl;
@@ -224,12 +240,16 @@ int main(int argc, char* argv[])
     int out_count = dlen;
     if (argc == 1) {
         for (int i = 0; i < dlen; i++) {
-            cout << in_data[i] << " -> " << out_data[i] << endl;
+            cout << "(" << static_cast<bool>(in_bit[i/8] & (1 << (i%8))) << ", " << in_data[i]
+                 << ") -> ("
+                 << static_cast<bool>(out_bit[i/8] & (1 << (i%8))) << ", " << out_data[i] << ")" << endl;
         }
     }
 
     delete[] in_data;
     delete[] out_data;
+    delete[] in_bit;
+    delete[] out_bit;
 
     auto time = duration_cast<microseconds>(end_time - start_time).count();
     cout << "Data size: " << out_count << " Time: " << time << endl;
