@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
     auto buf_size = get_buf_size(dlen);
 
     auto in_data = new float[dlen]();
-    auto in_bit = new char[dlen]();
+    auto in_bit = new char[(dlen+7)/8]();
     region_t in_reg;
     init_region(&in_reg, 0, dur, buf_size, reinterpret_cast<char*>(in_data), in_bit);
     for (int i = 0; i < dlen; i++) {
@@ -229,7 +229,7 @@ int main(int argc, char* argv[])
     }
 
     auto out_data = new float[dlen]();
-    auto out_bit = new char[dlen]();
+    auto out_bit = new char[(dlen+7)/8]();
     region_t out_reg;
     init_region(&out_reg, 0, dur, buf_size, reinterpret_cast<char*>(out_data), out_bit);
 
