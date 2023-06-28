@@ -15,14 +15,14 @@ using namespace tilt::tilder;
 using namespace std;
 using namespace std::chrono;
 
-Op _Select(_sym in, function<Expr(_sym)> selector)
+Op _Select(_sym in, int dur, function<Expr(_sym)> selector)
 {
     auto e = in[_pt(0)];
     auto e_sym = _sym("e", e); 
     auto res = selector(e_sym);
     auto res_sym = _sym("res", res);
     auto sel_op = _op(
-        _iter(0, 1), 
+        _iter(0, dur), 
         Params{in},
         SymTable{{e_sym, e}, {res_sym, res}},
         _exists(e_sym),
@@ -30,13 +30,13 @@ Op _Select(_sym in, function<Expr(_sym)> selector)
     return sel_op;
 }
 
-Op _NestedSelect(_sym in, int w)
+Op _NestedSelect(_sym in, int w, int dur)
 {
     auto win = in[_win(-w, 0)];
     auto win_sym = _sym("win", win);
-    auto inner_sel = _Select(win_sym, [](_sym e) { return e + _f32(10); });
+    auto inner_sel = _Select(win_sym, dur, [](_sym e) { return e + _f32(10); });
     auto inner_sel_sym = _sym("inner_sel", inner_sel);
-    auto inner_sel2 = _Select(inner_sel_sym, [](_sym e) {return e + _f32(10); });
+    auto inner_sel2 = _Select(inner_sel_sym, dur, [](_sym e) {return e + _f32(10); });
     auto inner_sel2_sym = _sym("inner_sel2", inner_sel2);
     auto sel_op = _op(
         _iter(0, w),
@@ -77,9 +77,9 @@ int main(int argc, char* argv[])
     // input stream
     auto in_sym = _sym("in", tilt::Type(types::FLOAT32, _iter(0, dur)));
 
-    auto query_op = _WindowSum(in_sym, 10);
-    //auto query_op = _NestedSelect(in_sym, 10);
-    //auto query_op = _Select(in_sym, [](_sym e) { return e + _f32(10); });
+    //auto query_op = _WindowSum(in_sym, 10);
+    auto query_op = _NestedSelect(in_sym, 10, dur);
+    //auto query_op = _Select(in_sym, dur, [](_sym e) { return e + _f32(10); });
     auto query_op_sym = _sym("query", query_op);
     cout << endl << "TiLT IR:" << endl;
     cout << IRPrinter::Build(query_op) << endl;
@@ -102,11 +102,11 @@ int main(int argc, char* argv[])
 
     auto in_data = new float[dlen];
     region_t in_reg;
-    init_region(&in_reg, 0, dur, buf_size, reinterpret_cast<char*>(in_data));
+    init_region(&in_reg, 0, buf_size, reinterpret_cast<char*>(in_data));
     for (int i = 0; i < dlen; i++) {
         auto t = dur * i;
         commit_data(&in_reg, t);
-        auto* ptr = reinterpret_cast<float*>(fetch(&in_reg, t, sizeof(float)));
+        auto* ptr = reinterpret_cast<float*>(fetch(&in_reg, t, dur, sizeof(float)));
         *ptr = i%1000;
     }
 
